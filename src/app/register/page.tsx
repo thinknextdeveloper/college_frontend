@@ -16,6 +16,7 @@ import {
   setFeedback,
   resetRegister,
 } from '@/store/slices/registerSlice';
+import { login } from '@/store/slices/authslice';
 
 const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const mobileRx = /^[6-9]\d{9}$/;
@@ -49,30 +50,28 @@ function Field({
   );
 }
 
-const emptyForm = {
-  programTypeId: '',
-  programId: '',
-  specializationId: '',
-  candidateName: '',
-  email: '',
-  otp: '',
-  mobile: '',
-  password: '',
-  confirmPassword: '',
-};
-
 export default function RegisterPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { programTypes, programs, specializations, otpSent, otpVerified, registered, loading, feedback } =
     useAppSelector((s) => s.register);
 
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({
+    programTypeId: '',
+    programId: '',
+    specializationId: '',
+    candidateName: '',
+    email: '',
+    otp: '',
+    mobile: '',
+    password: '',
+    confirmPassword: '',
+  });
+
   const [cooldown, setCooldown] = useState(0);
 
-  const update = (k: keyof typeof emptyForm, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const update = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
-  // load program types once; clear state when leaving the page
   useEffect(() => {
     dispatch(fetchProgramTypes());
     return () => {
@@ -87,10 +86,10 @@ export default function RegisterPage() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  // go to login after successful registration
+  // Immediately redirect to student dashboard after successful registration
   useEffect(() => {
     if (!registered) return;
-    const t = setTimeout(() => router.push('/login'), 1500);
+    const t = setTimeout(() => router.replace('/student/dashboard'), 800);
     return () => clearTimeout(t);
   }, [registered, router]);
 
@@ -150,14 +149,15 @@ export default function RegisterPage() {
     return null;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const problem = validate();
     if (problem) {
       dispatch(setFeedback({ type: 'error', text: problem }));
       return;
     }
-    dispatch(
+
+    const res = await dispatch(
       registerStudent({
         programId: form.programId,
         specializationId: form.specializationId || null,
@@ -168,6 +168,13 @@ export default function RegisterPage() {
         confirmPassword: form.confirmPassword,
       })
     );
+
+    if (registerStudent.fulfilled.match(res)) {
+      // Auto login so session is immediately active and user data is stored in Redux
+      await dispatch(login({ identifier: form.email.trim(), password: form.password }));
+      // Redirect to Student Dashboard
+      router.replace('/student/dashboard');
+    }
   };
 
   return (
@@ -182,11 +189,10 @@ export default function RegisterPage() {
           {feedback && (
             <div
               role="alert"
-              className={`mb-5 rounded-lg px-4 py-3 text-sm ${
-                feedback.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-              }`}
+              className={`mb-5 rounded-lg px-4 py-3 text-sm font-semibold ${feedback.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'
+                }`}
             >
-              {/* {feedback.text} */}
+              {feedback.text}
             </div>
           )}
 
@@ -218,83 +224,83 @@ export default function RegisterPage() {
               </select>
             </Field>
 
-            <Field label={`Specialization ${specializations.length ? '*' : ''}`} className="md:col-span-2">
-              <select
-                className={inputCls}
-                value={form.specializationId}
-                onChange={(e) => update('specializationId', e.target.value)}
-                disabled={!specializations.length}
-              >
-                <option value="">{form.programId && !specializations.length ? 'Not applicable' : 'Select'}</option>
-                {specializations.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {specializations.length > 0 && (
+              <Field label="Specialization *" className="md:col-span-2">
+                <select
+                  className={inputCls}
+                  value={form.specializationId}
+                  onChange={(e) => update('specializationId', e.target.value)}
+                >
+                  <option value="">Select</option>
+                  {specializations.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
 
             <Field label="Candidate Name *" className="md:col-span-2">
               <input
                 className={inputCls}
                 value={form.candidateName}
                 onChange={(e) => update('candidateName', e.target.value)}
-                placeholder="As per 10th marksheet"
+                placeholder="Full name as per 10th certificate"
+                autoComplete="name"
               />
             </Field>
 
-            <Field label="Email Address *" className="md:col-span-2">
+            <Field label="Email Address *">
               <div className="flex gap-2">
                 <input
                   type="email"
                   className={inputCls}
                   value={form.email}
                   onChange={(e) => onEmailChange(e.target.value)}
-                  disabled={otpVerified}
                   placeholder="you@example.com"
                   autoComplete="email"
+                  disabled={otpVerified}
                 />
-                <button
-                  type="button"
-                  className={ghostBtnCls}
-                  onClick={handleSendOtp}
-                  disabled={otpVerified || loading.otp || cooldown > 0}
-                >
-                  {loading.otp
-                    ? 'Sending...'
-                    : cooldown > 0
-                      ? `Resend in ${cooldown}s`
-                      : otpSent
-                        ? 'Resend OTP'
-                        : 'Send OTP'}
-                </button>
+                {!otpVerified && (
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    className={ghostBtnCls}
+                    disabled={loading.otp || cooldown > 0}
+                  >
+                    {loading.otp ? 'Sending...' : cooldown > 0 ? `${cooldown}s` : otpSent ? 'Resend' : 'Send OTP'}
+                  </button>
+                )}
               </div>
             </Field>
 
-            {otpSent && (
-              <Field label="Enter OTP *" className="md:col-span-2">
-                <div className="flex gap-2">
-                  <input
-                    className={inputCls}
-                    value={form.otp}
-                    onChange={(e) => update('otp', e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    inputMode="numeric"
-                    maxLength={6}
-                    disabled={otpVerified}
-                    placeholder="6-digit OTP"
-                  />
+            <Field label="Email OTP *">
+              <div className="flex gap-2">
+                <input
+                  className={inputCls}
+                  value={form.otp}
+                  onChange={(e) => update('otp', e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit OTP"
+                  inputMode="numeric"
+                  maxLength={6}
+                  disabled={!otpSent || otpVerified}
+                />
+                {!otpVerified && (
                   <button
                     type="button"
-                    className={btnCls}
                     onClick={handleVerifyOtp}
-                    disabled={otpVerified || loading.verify}
+                    className={btnCls}
+                    disabled={loading.verify || !otpSent || form.otp.length !== 6}
                   >
                     {loading.verify ? 'Verifying...' : 'Verify'}
                   </button>
-                </div>
-                {otpVerified && <p className="mt-1.5 text-xs font-semibold text-green-700">✓ Email verified</p>}
-              </Field>
-            )}
+                )}
+                {otpVerified && (
+                  <span className="flex items-center text-xs font-bold text-green-700">✓ Verified</span>
+                )}
+              </div>
+            </Field>
 
             <Field label="Mobile Number *" className="md:col-span-2">
               <input

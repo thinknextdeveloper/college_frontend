@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api, { errorMessage, setAccessToken } from '@/lib/api';
 
 export type Role = 'Student' | 'Admin' | 'SuperAdmin';
-export type AuthUser = { id: number; email: string; role: Role };
+export type AuthUser = { id: number; email: string; mobile?: string; candidateName?: string; role: Role };
 
 type AuthState = {
   user: AuthUser | null;
@@ -14,11 +14,16 @@ const initialState: AuthState = { user: null, status: 'idle', error: null };
 
 export const login = createAsyncThunk<
   AuthUser,
-  { email: string; password: string },
+  { identifier?: string; email?: string; username?: string; mobile?: string; password: string },
   { rejectValue: string }
 >('auth/login', async (body, { rejectWithValue }) => {
   try {
-    const { data } = await api.post('/auth/login', body);
+    const payload = {
+      identifier: body.identifier || body.username || body.mobile || body.email,
+      email: body.email || body.identifier || body.username || body.mobile,
+      password: body.password,
+    };
+    const { data } = await api.post('/auth/login', payload);
     setAccessToken(data.accessToken);
     return data.user as AuthUser;
   } catch (e) {
