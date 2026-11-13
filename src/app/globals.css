@@ -4,3 +4,47 @@ body {
   background: #f5f7fb;
   color: #111827;
 }
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(20deg) translateY(50px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1000px) rotateX(0deg) translateY(0) scale(1);
+  }
+}
+
+@keyframes spin-3d {
+  from { transform: rotateX(-25deg) rotateY(0deg); }
+  to { transform: rotateX(-25deg) rotateY(360deg); }
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -26px, 0); }
+}
+
+@keyframes orb-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(40px, 30px, 0) scale(1.15); }
+}
+
+.anim-card-in { animation: card-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+.anim-spin-3d { animation: spin-3d 18s linear infinite; }
+.anim-float { animation: float-y 7s ease-in-out infinite; }
+.anim-orb { animation: orb-drift 12s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-card-in,
+  .anim-spin-3d,
+  .anim-float,
+  .anim-orb {
+    animation: none;
+  }
+}

@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { Provider } from 'react-redux';
-import { makeStore, AppStore } from '@/store/store';
-import { restoreSession } from '@/store/slices/authslice';
+import { makeStore, AppStore } from '../../store/store';
+import { restoreSession } from '../../store/slices/authslice';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const storeRef = useRef<AppStore | null>(null);
