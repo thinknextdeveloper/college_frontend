@@ -210,7 +210,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 bg-slate-50 py-5 text-center text-sm text-slate-500">
-        &copy; 2026 RITM Admissions. All rights reserved.
+        &copy; 2026 College Admissions. All rights reserved.
       </footer>
     </div>
   );

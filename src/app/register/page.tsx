@@ -169,7 +169,7 @@ export default function RegisterPage() {
     if (registerStudent.fulfilled.match(res)) {
       // backend already set the session cookie: load the user and open the dashboard
       const session = await dispatch(restoreSession());
-      router.replace(restoreSession.fulfilled.match(session) ? '/student/dashboard' : '/login');
+      router.replace(restoreSession.fulfilled.match(session) ? '/dashboard' : '/login');
     }
   };
 

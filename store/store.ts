@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authslice';
 import registerReducer from './slices/registerSlice';
+import studentReducer from './slices/studentSlice';
 
 
 export const makeStore = () =>
@@ -8,7 +9,7 @@ export const makeStore = () =>
     reducer: {
       auth: authReducer,
        register: registerReducer,
-      // add more slices here later: application, admin, notifications...
+       student: studentReducer,
     },
   });
 

@@ -57,7 +57,7 @@ export default function LoginPage() {
   // already logged in (or just logged in) -> go to the right dashboard
   useEffect(() => {
     if (!user) return;
-    router.replace(user.role === 'Student' ? '/student/dashboard' : '/admin/dashboard');
+    router.replace(user.role === 'Student' ? '/dashboard' : '/admin/dashboard');
   }, [user, router]);
 
   useEffect(() => {
